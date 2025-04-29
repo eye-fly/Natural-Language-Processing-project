@@ -1,0 +1,13 @@
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+python -m game_mcp.game_server --host 0.0.0.0 --port 8080
+
+
+
+python -m venv venv
+source venv/bin/activate 
+pip install -r requirements.txt
+
+python -m game_mcp.game_client --url http://0.0.0.0:8080 --role Defuser
