@@ -1,12 +1,11 @@
 import asyncio
 from typing import Optional
-from contextlib import AsyncExitStack
+from contextlib import AsyncExitStack, aclosing
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 
 # from anthropic import Anthropic
-from dotenv import load_dotenv
 import argparse
 
 
@@ -18,22 +17,22 @@ class BombClient:
         # YOUR CODE STARTS HERE
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-        # self.anthropic = Anthropic()
+        self._streams_context = None
+        self._session_context = None
         # YOUR CODE ENDS HERE
 
     async def connect_to_server(self, server_url: str):
         """Connect to an sse MCP server"""
         # YOUR CODE STARTS HERE
-        self._streams_context = sse_client(url=server_url)
-        streams = await self._streams_context.__aenter__()
+        self.exit_stack = AsyncExitStack()
 
-        self._session_context = ClientSession(*streams)
-        self.session: ClientSession = await self._session_context.__aenter__()
+        self._streams_context = await self.exit_stack.enter_async_context(sse_client(url=server_url))
 
-        # Initialize
+        self._session_context = ClientSession(*self._streams_context)
+        self.session = await self.exit_stack.enter_async_context(self._session_context)
+
         await self.session.initialize()
 
-        # List available tools to verify connection
         print("Initialized SSE client...")
         print("Listing tools...")
         response = await self.session.list_tools()
@@ -51,10 +50,10 @@ class BombClient:
     async def cleanup(self):
         """Properly clean up the session and streams"""
         # YOUR CODE STARTS HERE
-        if self._session_context:
-            await self._session_context.__aexit__(None, None, None)
-        if self._streams_context:
-            await self._streams_context.__aexit__(None, None, None)
+        try:
+            await self.exit_stack.aclose()
+        except asyncio.CancelledError:
+            print("[Client] Cancelled during cleanup — safe to ignore.")
         print("[Client] Session closed")
         # YOUR CODE ENDS HERE
 
@@ -64,7 +63,7 @@ class Defuser(BombClient):
         """Run a defuser action"""
         # YOUR CODE STARTS HERE
         response = await self.process_query("game_interaction", {"command": action})
-        print(f"[Defuser] Server Response:\n{response}")
+        # print(f"[Defuser] Server Response:\n{response}")
         return response
         # YOUR CODE ENDS HERE
 
@@ -74,7 +73,7 @@ class Expert(BombClient):
         """Run an expert action"""
         # YOUR CODE STARTS HERE
         response = await self.process_query("get_manual", {})
-        print(f"[Expert] Manual:\n{response}")
+        # print(f"[Expert] Manual:\n{response}")
         return response
         # YOUR CODE ENDS HERE
 
@@ -111,13 +110,15 @@ async def main():
                 action = input("[Defuser] Enter action (or 'help' or 'state'): ").strip()
                 if not action:
                     continue
-                await client.run(action)
+                resp =await client.run(action)
+                print(resp)
         else:
             while True:
                 cmd = input("[Expert] Press Enter to fetch manual or type 'exit' to quit: ").strip()
                 if cmd.lower() == "exit":
                     break
-                await client.run()
+                resp = await client.run()
+                print(resp)
     except KeyboardInterrupt:
         print("\n[Client] Interrupted")
     finally:

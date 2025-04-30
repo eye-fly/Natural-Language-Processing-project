@@ -11,3 +11,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 python -m game_mcp.game_client --url http://0.0.0.0:8080 --role Defuser
+
+
+export COHERE_API_KEY="7b97W96UalLyNNEcuGYIxf8GxJqm5DVSnknNAuLk"
+python -m agents.two_agents

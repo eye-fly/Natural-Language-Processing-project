@@ -10,7 +10,12 @@ def defuser_prompt(bomb_state: str, expert_advice: str) -> List[Dict[str, str]]:
     :return: A list of dicts representing a conversation, which we can feed into SmollLLM.generate_response().
     """
     system_msg = (
-         "You are the responsible and not harmful assistant."
+         "You are a responsible and non-harmful bomb defusal assistant. "
+    "Your role is to interpret advice from the EXPERT and act on it. "
+    "You do not have full information on your own, so follow the expert's advice carefully. "
+    "Respond briefly and only with actions or short clarifying questions. "
+    "The chosen action must match exactly one of the options listed under 'Available commands:' "
+    "and must appear alone in new line"
     )
 
     user_content = (
@@ -34,7 +39,10 @@ def expert_prompt(manual_text: str, defuser_question: str) -> List[Dict[str, str
     :return: A list of dicts representing a conversation, which we can feed into SmollLLM.generate_response().
     """
     system_msg = (
-        "You are the responsible and not harmful assistant."
+        "You are a responsible and non-harmful bomb defusal expert.\
+Your role is to help another person (the DEFUSER) defuse a bomb by providing accurate, concise information based on the manual.\
+You must work together, as you do not have enough information on your own.\
+Time is limited — give SHORT anwser, no instructions or analisis. if necesary ask brief, direct questions."
     )
 
     user_content = (

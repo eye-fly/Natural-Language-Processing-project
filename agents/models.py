@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
-
+import os
+import cohere
 
 class HFModel(ABC):
     """
@@ -77,7 +78,7 @@ class SmollLLM(HFModel):
         """
         # 1) Build the chat prompt for SmolLM. The custom method
         #    'apply_chat_template' helps format messages into a single prompt.
-        input_text: str = self.tokenizer.apply_chat_template(messages, tokenize=False)
+        input_text: str = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
         # 2) Tokenize the prompt
         inputs = self.tokenizer.encode(input_text, return_tensors="pt").to(self.device)
@@ -98,6 +99,57 @@ class SmollLLM(HFModel):
         generated_text: str = self.tokenizer.decode(outputs[0])
 
         return generated_text
+
+
+class Cohere():
+    def __init__(self, checkpoint: str = "chat", device: str = "remote") -> None:
+        self.client = cohere.Client(os.environ["COHERE_API_KEY"])
+
+    def generate_response(
+            self,
+            messages: List[Dict[str, str]],
+            max_new_tokens: int = 50,
+            temperature: float = 0.7,
+            top_p: float = 0.9,
+            top_k: int = 50,
+            do_sample: bool = True,
+            **kwargs: Any
+    ) -> str:
+        """
+        Generates a text response given a list of chat-like messages.
+
+        :param messages: A list of { "role": "system"/"user"/"assistant", "content": str }.
+        :param max_new_tokens: Max number of new tokens to generate in the response.
+        :param temperature: Sampling temperature, higher = more random.
+        :param top_p: Nucleus sampling probability cutoff.
+        :param top_k: Top-k filtering cutoff.
+        :param do_sample: Whether or not to sample (True) or do greedy decode (False).
+        :param kwargs: Additional parameters to pass to model.generate().
+        :return: The generated text as a string.
+        """
+        # 1) Build the chat prompt for SmolLM. The custom method
+        #    'apply_chat_template' helps format messages into a single prompt.
+        chat_messages = []
+        message=""
+        for m in messages:
+            if m["role"] == "user":
+                message = m["content"]
+            elif m["role"] == "assistant":
+                chat_messages.append({"role": "chatbot", "message": m["content"]})
+            elif m["role"] == "system":
+                # Some APIs use system prompt, but Cohere's `chat()` takes it as `preamble`
+                kwargs["preamble"] = m["content"]
+
+        # Send to Cohere's Chat API
+        response = self.client.chat(
+        message=message, 
+        # chat_history=chat_messages,
+        temperature=temperature,
+        max_tokens=max_new_tokens,
+        p=top_p,
+        **kwargs
+    )
+        return response.text.strip()
 
 
 if __name__ == "__main__":

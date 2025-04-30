@@ -41,6 +41,10 @@ async def game_interaction(command: str) -> str:
         command: str: The command to execute.
     """
     print(f"Received command: {command}")
+    if command == 'restart':
+        global bomb
+        bomb = Bomb()
+        return
     if command == "help":
         return HELP_TEXT
 
