@@ -4,6 +4,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 import os
 import cohere
+import openai
 
 class HFModel(ABC):
     """
@@ -151,6 +152,43 @@ class Cohere():
     )
         return response.text.strip()
 
+
+class OpenAIModel:
+    def __init__(self, model: str = "gpt-3.5-turbo", device: str = "remote") -> None:
+        """
+        :param model: OpenAI model name (e.g., "gpt-3.5-turbo", "gpt-4")
+        :param device: Ignored, for interface compatibility
+        """
+        self.model = model
+        openai.api_key = os.environ["OPENAI_API_KEY"]
+
+    def generate_response(
+        self,
+        messages: List[Dict[str, str]],
+        max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        top_k: int = 50,  # Ignored
+        do_sample: bool = True,  # OpenAI always samples unless temp=0
+        **kwargs: Any
+    ) -> str:
+        """
+        Generate response using OpenAI Chat API.
+
+        :param messages: List of messages as dicts {role: ..., content: ...}
+        :param max_new_tokens: Max tokens to generate
+        :param temperature: Sampling temperature
+        :param top_p: Nucleus sampling
+        :return: Response string
+        """
+        response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=messages,
+            max_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        )
+        return response["choices"][0]["message"]["content"].strip()
 
 if __name__ == "__main__":
     checkpoint: str = "HuggingFaceTB/SmolLM-135M-Instruct"
