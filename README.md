@@ -1,6 +1,7 @@
 # LLM Bomb Defusal
 
-A text-based implementation of "Keep Talking and Nobody Explodes" with LLM-powered agents. This project demonstrates two language model agents collaborating to solve a bomb defusal puzzle—one agent acts as the Defuser (who can see the bomb but not the manual), and the other as the Expert (who has the manual but can't see the bomb). The main focus of the project is to design a communication scheme so that communication between agents is efficient.
+A text-based implementation of "Keep Talking and Nobody Explodes" with LLM-powered agents. This project demonstrates two language model agents collaborating to solve a bomb defusal puzzle—one agent acts as the Defuser (who can see the bomb but not the manual), and the other as the Expert (who has the manual but can't see the bomb). The main focus of the project is to design a communication scheme that enables efficient information exchange between agents, simulating a natural conversation as in the original game.
+
 
 ## Project Overview
 
@@ -10,26 +11,21 @@ A text-based implementation of "Keep Talking and Nobody Explodes" with LLM-power
 3. **Agent Communication**: Located in the `crewai_bomb/` directory. A team of two agents working together using [crewai](https://docs.crewai.com/introduction).
 
 ```
-├── agents/                  # Agent testing Framework
+├── agents/                  # Agent testing Framework(no communication)
 │   ├── models.py            # implementation of all tested LLMS SmollLLM,Cohere,etc.
 │   ├── prompts.py           
 │   ├── test_loop.py        # Main program for agents testing/comparison
 │
 ├── game/                    # Core game logic
-│   ├── bomb.py              # Main class
 │   ├── main.py              # Manual game mode (only for debugging)
 │   ├── modules/             # Different bomb modules
-│       ├── module.py        # Base Module class and ActionResult enum
-│       ├── regular_wires_module.py
-│       ├── button_module.py
-│       ├── simon_says_module.py
-│       ├── memory_module.py
+│   ├── bomb.py              
 │
 ├── game_mcp/                # MCP server/client implementation
 │   ├── game_server.py       # Server exposing game API via MCP
 │   ├── game_client.py       # Client classes for Defuser and Expert roles
 │
-└── crewai_bomb/             # CrewAI-specific implementation
+└── crewai_bomb/             # CrewAI implementation with communication
     ├── crew.py              # CrewAI main loop implementation of two agents
     ├── tools.py             # tools for LLM interaction with game server
     ├── agents.py           
