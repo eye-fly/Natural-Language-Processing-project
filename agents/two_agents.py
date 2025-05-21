@@ -131,7 +131,7 @@ async def run_single_agent(
                     # === SAVE RESULTS ===
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     model_name = expert_model.__class__.__name__
-                    result_path = f"results/{model_name}_runlog.csv"
+                    result_path = f"results/runlog.csv"
 
                     result_line = (
                         f"{timestamp},{model_name},{max_new_tokens},{temp},{top_p},{top_k},"

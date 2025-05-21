@@ -1,5 +1,5 @@
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv\Scripts\activate
 pip install -r requirements.txt
 
 python -m game_mcp.game_server --host 0.0.0.0 --port 8080
@@ -13,9 +13,16 @@ pip install -r requirements.txt
 python -m game_mcp.game_client --url http://0.0.0.0:8080 --role Defuser
 
 
-export COHERE_API_KEY="7b97W96UalLyNNEcuGYIxf8GxJqm5DVSnknNAuLk"
+export COHERE_API_KEY=
 python -m agents.two_agents
 
 
-export OPENAI_API_KEY=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
+export OPENAI_API_KEY=
+.\venv\Scripts\activate
 python -m crewai_bomb.crew
+
+
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\venv\Scripts\activate
+pip install -r requirements.txt
