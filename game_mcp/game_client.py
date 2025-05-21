@@ -9,21 +9,16 @@ from mcp.client.sse import sse_client
 import argparse
 
 
-# Feel free to import any libraries you need - if needed change requirements.txt
-
-
 class BombClient:
     def __init__(self):
-        # YOUR CODE STARTS HERE
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self._streams_context = None
         self._session_context = None
-        # YOUR CODE ENDS HERE
+ 
 
     async def connect_to_server(self, server_url: str):
         """Connect to an sse MCP server"""
-        # YOUR CODE STARTS HERE
         self.exit_stack = AsyncExitStack()
 
         self._streams_context = await self.exit_stack.enter_async_context(sse_client(url=server_url))
@@ -38,64 +33,50 @@ class BombClient:
         response = await self.session.list_tools()
         tools = response.tools
         print("\nConnected to server with tools:", [tool.name for tool in tools])
-        # YOUR CODE ENDS HERE
 
     async def process_query(self, tool_name: str, tool_args: dict[str, str]) -> str:
-        """Process a query using the game_interaction tool"""
-        # YOUR CODE STARTS HERE
         result = await self.session.call_tool(tool_name, arguments=tool_args)
         return result.content[0].text if result.content else ""
-        # YOUR CODE ENDS HERE
 
     async def cleanup(self):
-        """Properly clean up the session and streams"""
-        # YOUR CODE STARTS HERE
         try:
             await self.exit_stack.aclose()
         except asyncio.CancelledError:
             print("[Client] Cancelled during cleanup — safe to ignore.")
         print("[Client] Session closed")
-        # YOUR CODE ENDS HERE
 
 
 class Defuser(BombClient):
     async def run(self, action: str) -> str:
-        """Run a defuser action"""
-        # YOUR CODE STARTS HERE
         response = await self.process_query("game_interaction", {"command": action})
         # print(f"[Defuser] Server Response:\n{response}")
         return response
-        # YOUR CODE ENDS HERE
 
 
 class Expert(BombClient):
     async def run(self) -> str:
-        """Run an expert action"""
-        # YOUR CODE STARTS HERE
         response = await self.process_query("get_manual", {})
         # print(f"[Expert] Manual:\n{response}")
         return response
-        # YOUR CODE ENDS HERE
 
 
 async def main():
-    """ Main function to connect to the server and run the clients """
-    # YOUR CODE STARTS HERE
+    """ Main function to connect to the server, run unit tests and run the choosen client"""
     parser = argparse.ArgumentParser(description="Bomb Defusal Client")
     parser.add_argument("--url", type=str, required=True, help="Server URL (e.g., http://localhost:8080)")
     parser.add_argument("--role", type=str, required=True, choices=["Defuser", "Expert"], help="Role to play")
 
     args = parser.parse_args()
     
-    # #test:
-    # client = Defuser()
-    # await client.connect_to_server(args.url)
-    # await defuser_test(client)
-    # await client.cleanup()
-    # client = Expert()
-    # await client.connect_to_server(args.url)
-    # await expert_test(client)
-    # await client.cleanup()
+    #tests: 
+    client = Defuser()
+    await client.connect_to_server(args.url)
+    await defuser_test(client)
+    await client.cleanup()
+    client = Expert()
+    await client.connect_to_server(args.url)
+    await expert_test(client)
+    await client.cleanup()
 
     if args.role == "Defuser":
         client = Defuser()
@@ -123,8 +104,6 @@ async def main():
         print("\n[Client] Interrupted")
     finally:
         await client.cleanup()
-    # YOUR CODE ENDS HERE
-
 
 async def expert_test(expert_client: Expert):
     """Test the Expert class"""

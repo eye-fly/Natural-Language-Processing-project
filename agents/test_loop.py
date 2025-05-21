@@ -36,19 +36,9 @@ class HFModel(ABC):
             **kwargs: Any
     ) -> str:
         """
-        Subclasses must define how to build input data from 'messages'
+        Subclasses must define how to build input data from 'messages' wich is defined in prompts.py
         and produce a response string.
 
-        :param messages: A list of dicts representing a chat or conversation context.
-               Each dict has "role" and "content" keys, for example:
-               [{"role": "user", "content": "Hello!"}, ...]
-        :param max_new_tokens: Maximum number of new tokens to generate in the response.
-        :param temperature: The temperature of sampling. Higher values = more random.
-        :param top_p: The cumulative probability for nucleus sampling.
-        :param top_k: The number of highest probability vocabulary tokens to keep for top-k-filtering.
-        :param do_sample: Whether or not to use sampling; use greedy decoding otherwise.
-        :param kwargs: Additional model.generate() parameters as needed.
-        :return: The generated text response as a string.
         """
         pass
 
@@ -65,26 +55,12 @@ class SmollLLM(HFModel):
             do_sample: bool = True,
             **kwargs: Any
     ) -> str:
-        """
-        Generates a text response given a list of chat-like messages.
-
-        :param messages: A list of { "role": "system"/"user"/"assistant", "content": str }.
-        :param max_new_tokens: Max number of new tokens to generate in the response.
-        :param temperature: Sampling temperature, higher = more random.
-        :param top_p: Nucleus sampling probability cutoff.
-        :param top_k: Top-k filtering cutoff.
-        :param do_sample: Whether or not to sample (True) or do greedy decode (False).
-        :param kwargs: Additional parameters to pass to model.generate().
-        :return: The generated text as a string.
-        """
-        # 1) Build the chat prompt for SmolLM. The custom method
-        #    'apply_chat_template' helps format messages into a single prompt.
+        #  add_generation_prompt is necessary to include the response starting token
         input_text: str = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-        # 2) Tokenize the prompt
         inputs = self.tokenizer.encode(input_text, return_tensors="pt").to(self.device)
 
-        # 3) Generate output with the provided generation parameters
+        # Generate output
         with torch.no_grad():
             outputs = self.model.generate(
                 inputs,
@@ -96,10 +72,7 @@ class SmollLLM(HFModel):
                 **kwargs
             )
 
-        # 4) Decode the tokens to a string
-        generated_text: str = self.tokenizer.decode(outputs[0])
-
-        return generated_text
+        return self.tokenizer.decode(outputs[0])
 
 
 class Cohere():
@@ -116,20 +89,8 @@ class Cohere():
             do_sample: bool = True,
             **kwargs: Any
     ) -> str:
-        """
-        Generates a text response given a list of chat-like messages.
 
-        :param messages: A list of { "role": "system"/"user"/"assistant", "content": str }.
-        :param max_new_tokens: Max number of new tokens to generate in the response.
-        :param temperature: Sampling temperature, higher = more random.
-        :param top_p: Nucleus sampling probability cutoff.
-        :param top_k: Top-k filtering cutoff.
-        :param do_sample: Whether or not to sample (True) or do greedy decode (False).
-        :param kwargs: Additional parameters to pass to model.generate().
-        :return: The generated text as a string.
-        """
-        # 1) Build the chat prompt for SmolLM. The custom method
-        #    'apply_chat_template' helps format messages into a single prompt.
+        # translete message to string as its only format suppoeted by Cohere
         chat_messages = []
         message=""
         for m in messages:
@@ -138,18 +99,18 @@ class Cohere():
             elif m["role"] == "assistant":
                 chat_messages.append({"role": "chatbot", "message": m["content"]})
             elif m["role"] == "system":
-                # Some APIs use system prompt, but Cohere's `chat()` takes it as `preamble`
                 kwargs["preamble"] = m["content"]
 
-        # Send to Cohere's Chat API
+        # get response from API
         response = self.client.chat(
-        message=message, 
-        # chat_history=chat_messages,
-        temperature=temperature,
-        max_tokens=max_new_tokens,
-        p=top_p,
-        **kwargs
-    )
+            message=message, 
+            # chat_history=chat_messages,
+            temperature=temperature,
+            max_tokens=max_new_tokens,
+            p=top_p,
+            **kwargs
+        )
+
         return response.text.strip()
 
 
@@ -172,15 +133,7 @@ class OpenAIModel:
         do_sample: bool = True,  # OpenAI always samples unless temp=0
         **kwargs: Any
     ) -> str:
-        """
-        Generate response using OpenAI Chat API.
 
-        :param messages: List of messages as dicts {role: ..., content: ...}
-        :param max_new_tokens: Max tokens to generate
-        :param temperature: Sampling temperature
-        :param top_p: Nucleus sampling
-        :return: Response string
-        """
         response = openai.ChatCompletion.create(
             model=self.model,
             messages=messages,
@@ -190,6 +143,7 @@ class OpenAIModel:
         )
         return response["choices"][0]["message"]["content"].strip()
 
+# Simple main loop for debugging purposes only
 if __name__ == "__main__":
     checkpoint: str = "HuggingFaceTB/SmolLM-135M-Instruct"
     device: str = "cpu"  # or "cpu"

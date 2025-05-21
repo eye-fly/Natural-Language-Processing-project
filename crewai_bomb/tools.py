@@ -8,16 +8,14 @@ from typing import Optional
 from pydantic import BaseModel
 from typing import Type
 
-# Feel free to import any libraries you need - if needed change requirements.txt
-# In this file it also applies to classes and functions :)
-
+# A class used to define or explain arguments for a given tool to the agent. 
+# However, with the (relatively small) LLMs used,
+# the format of the generated message based on this class often confused the models.
 class MyToolInput(BaseModel):
-    """Input schema for MyCustomTool."""
     command: str = Field(..., description="a command to run on defuser tool. Cannot be empty, run \"state\" for bomb state")
 
     
 class DefuserTool(BaseTool):
-    # YOUR CODE STARTS HERE
     name: str = "DefuserTool"
     description: str = "DefuserTool that can provide current bomb state and allows to executes choosen command on a bomb."
     args_schema: Type[BaseModel] = MyToolInput
@@ -27,9 +25,6 @@ class DefuserTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True 
 
-    # def __init__(self, defuser_client, **kwargs):
-    #     super().__init__(**kwargs)  # Call BaseTool constructor
-    #     defuser_client = defuser_client  # Store custom client
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.defuser_client = Defuser()
@@ -46,13 +41,12 @@ class DefuserTool(BaseTool):
         
         if command == 'help':
             bomb_state+="\n[Defuser] Enter action (or 'help' or 'state'):"
-        # print(bomb_state)
+
         return bomb_state 
-    # YOUR CODE ENDS HERE
+
 
 
 class ExpertTool(BaseTool):
-    # YOUR CODE STARTS HERE
     name: str = "ExpertTool"
     description: str = "Tool that can provide manual for current bomb module that has all the information necesary to defuse it."
     expert_client:Expert = None
@@ -60,9 +54,7 @@ class ExpertTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True 
 
-    # def __init__(self, defuser_client, **kwargs):
-    #     super().__init__(**kwargs)  # Call BaseTool constructor
-    #     defuser_client = defuser_client  # Store custom client
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.expert_client = Expert()
@@ -74,4 +66,4 @@ class ExpertTool(BaseTool):
         bomb_state = self.loop.run_until_complete(self.expert_client.run())
         # print(bomb_state)
         return bomb_state 
-    # YOUR CODE ENDS HERE
+

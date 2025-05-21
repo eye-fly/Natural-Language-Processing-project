@@ -41,6 +41,27 @@ async def generate_with_backoff(model, messages, **gen_args) -> str:
     raise RuntimeError("Too many retries due to rate limits.")
 
 
+async def get_agent_action(defuser_client: Defuser,expert_client: Expert,**gen_args)-> str:
+    bomb_state = await defuser_client.run("state")
+    # logging.info("[BOMB STATE]\n" + bomb_state)
+
+    manual_text = await expert_client.run()
+    # logging.info("[MANUAL TEXT]\n" + manual_text)
+
+    messages = defuser_prompt(bomb_state,manual_text)
+    raw_response = await generate_with_backoff(
+            expert_model,
+            messages,
+            **gen_args
+        )
+    logging.info("[MODEL RESPONSE]\n" + raw_response)
+
+    for line in raw_response.splitlines():
+        line = line.strip().lower()
+        if line.startswith(("cut", "press", "hold", "release", "help", "state")):
+            return line.strip()
+    return "help"
+
 async def run_single_agent(
     expert_model: HFModel,
     server_url: str = "http://0.0.0.0:8080",
@@ -48,6 +69,7 @@ async def run_single_agent(
     temperature: float = 0.4,
     top_p: float = 0.9,
     top_k: int = 50,
+    defusal_loop_lenght = 10,
 ) -> None:
     defuser_client = Defuser()
     expert_client = Expert()
@@ -77,35 +99,15 @@ async def run_single_agent(
                     logging.info(f"\n Running config: temp={temp}, top_p={top_p}, top_k={top_k}")
                     logging.info('='*100)
                     # Start bomb defusal loop
-                    i =0
-                    while True:
-                        i +=1
-                        if i >10:
-                            break
-                        bomb_state = await defuser_client.run("state")
-                        # logging.info("[BOMB STATE]\n" + bomb_state)
+                    for i in range(defusal_loop_lenght):
 
-                        manual_text = await expert_client.run()
-                        # logging.info("[MANUAL TEXT]\n" + manual_text)
 
-                        messages = defuser_prompt(bomb_state,manual_text)
-                        raw_response = await generate_with_backoff(
-                                expert_model,
-                                messages,
+                        action = get_agent_action(defuser_client,expert_client, 
                                 max_new_tokens=max_new_tokens,
                                 temperature=temp,
                                 top_p=top_p,
                                 top_k=top_k,
-                                do_sample=True
-                            )
-                        logging.info("[MODEL RESPONSE]\n" + raw_response)
-
-                        action = "help"
-                        for line in raw_response.splitlines():
-                            line = line.strip().lower()
-                            if line.startswith(("cut", "press", "hold", "release", "help", "state")):
-                                action = line.strip()
-                                break
+                                do_sample=True)
 
                         if action == "help":
                             incorrect_actions += 1
@@ -160,13 +162,8 @@ async def run_single_agent(
             print("[run_single_agent] Cancelled during cleanup — safe to ignore.")
 
 if __name__ == "__main__":
-
-    defuser_checkpoint = "HuggingFaceTB/SmolLM-135M-Instruct"
-    # expert_checkpoint = "Qwen/Qwen2.5-1.5B"
-
-    # defuser_model = SmollLLM(defuser_checkpoint, device="cpu")
-    # expert_model = SmollLLM(defuser_checkpoint, device="cpu")
     expert_model = Cohere()
+    
     asyncio.run(
         run_single_agent(
             expert_model=expert_model,

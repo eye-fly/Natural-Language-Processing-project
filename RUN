@@ -14,7 +14,7 @@ python -m game_mcp.game_client --url http://0.0.0.0:8080 --role Defuser
 
 
 export COHERE_API_KEY=
-python -m agents.two_agents
+python -m agents.agents
 
 
 export OPENAI_API_KEY=

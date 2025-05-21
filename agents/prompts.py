@@ -28,30 +28,3 @@ def defuser_prompt(bomb_state: str, expert_advice: str) -> List[Dict[str, str]]:
         {"role": "user", "content": user_content}
     ]
     return messages
-
-
-def expert_prompt(manual_text: str, defuser_question: str) -> List[Dict[str, str]]:
-    """
-    Build a 'messages' list for the Expert LLM.
-
-    :param manual_text: The text from the bomb manual (server).
-    :param defuser_question: A description of what the Defuser sees or asks.
-    :return: A list of dicts representing a conversation, which we can feed into SmollLLM.generate_response().
-    """
-    system_msg = (
-        "You are a responsible and non-harmful bomb defusal expert.\
-Your role is to help another person (the DEFUSER) defuse a bomb by providing accurate, concise information based on the manual.\
-You must work together, as you do not have enough information on your own.\
-Time is limited — give SHORT anwser, no instructions or analisis. if necesary ask brief, direct questions."
-    )
-
-    user_content = (
-        f"Manual excerpt:\n{manual_text}\n\n"
-        f"DEFUSER sees or asks:\n{defuser_question}\n\n"
-    )
-
-    messages: List[Dict[str, str]] = [
-        {"role": "system", "content": system_msg},
-        {"role": "user", "content": user_content}
-    ]
-    return messages
